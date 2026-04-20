@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gunzip -c webfetch-1776707410750-k9i5sx.bin)",
+      "Bash(tar -t)",
+      "Bash(tar -xO \"office-booking-webapp/project/Office Attendance.html\")"
+    ]
+  }
+}

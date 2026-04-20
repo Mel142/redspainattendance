@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Office Attendance</title>
+
+<!-- ext-resource-dependency: https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- lucide: exposes window.lucide with all icons -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+<style>
+  :root {
+    --bg: oklch(0.98 0.01 80);
+    --bg-2: oklch(0.96 0.012 75);
+    --card: oklch(0.995 0.006 85);
+    --ink: oklch(0.28 0.02 50);
+    --ink-2: oklch(0.45 0.02 55);
+    --ink-3: oklch(0.62 0.015 60);
+    --line: oklch(0.9 0.012 70);
+    --line-2: oklch(0.85 0.015 70);
+    --accent: oklch(0.65 0.12 40);     /* terracotta */
+    --accent-soft: oklch(0.93 0.04 45);
+    --sage: oklch(0.72 0.05 150);
+    --blue: oklch(0.72 0.06 240);
+    --weekend: oklch(0.955 0.012 75);
+  }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  .font-inter { font-family: 'Inter', system-ui, sans-serif; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: oklch(0.88 0.015 70); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.8 0.02 65); }
+
+  /* Subtle card shadow */
+  .card-shadow { box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 2px 8px rgba(60, 40, 20, 0.04); }
+  .card-shadow-lg { box-shadow: 0 4px 12px rgba(60, 40, 20, 0.06), 0 12px 32px rgba(60, 40, 20, 0.08); }
+
+  /* Chip hue variants (we set CSS vars inline from JS) */
+  .chip {
+    background: var(--chip-bg, oklch(0.94 0.03 40));
+    color: var(--chip-fg, oklch(0.35 0.06 40));
+    border: 1px solid var(--chip-border, oklch(0.88 0.04 40));
+  }
+  .chip-dot {
+    background: var(--chip-fg, oklch(0.35 0.06 40));
+  }
+
+  button:focus-visible, [role=button]:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid oklch(0.7 0.08 40);
+    outline-offset: 2px;
+  }
+
+  /* Day cell hover */
+  .day-cell { transition: background-color 120ms ease, border-color 120ms ease; }
+  .day-cell:hover:not(.is-past):not(.is-weekend) { background: oklch(0.975 0.015 75); }
+  .day-cell.is-today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+  .segmented {
+    background: oklch(0.94 0.01 75);
+    border-radius: 10px;
+    padding: 3px;
+    display: inline-flex;
+    gap: 2px;
+  }
+  .segmented button {
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    transition: all 120ms ease;
+  }
+  .segmented button[aria-pressed="true"] {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(60,40,20,0.06), 0 1px 4px rgba(60,40,20,0.04);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: oklch(0.99 0.005 80);
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 14px;
+    transition: filter 120ms ease, transform 60ms ease;
+  }
+  .btn-primary:hover { filter: brightness(0.95); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .btn-ghost:hover { background: oklch(0.94 0.01 75); color: var(--ink); }
+
+  .btn-outline {
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .btn-outline:hover { background: oklch(0.97 0.01 75); border-color: var(--line-2); }
+
+  .btn-danger {
+    background: oklch(0.6 0.14 25);
+    color: oklch(0.99 0.005 80);
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .btn-danger:hover { filter: brightness(0.95); }
+
+  .modal-backdrop {
+    background: oklch(0.25 0.02 50 / 0.35);
+    backdrop-filter: blur(3px);
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-fade { animation: fadeIn 140ms ease-out; }
+  .animate-pop { animation: popIn 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink-3);
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+/* global React, ReactDOM, lucide */
+
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+// ---------- icons: tiny React wrappers over lucide's static SVGs ----------
+function Icon({ name, size = 16, strokeWidth = 2, className = "" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const node = lucide.icons[name] || lucide.icons[kebab(name)];
+    if (!node) return;
+    // node is an array: ['svg', attrs, children]
+    ref.current.innerHTML = "";
+    ref.current.appendChild(lucide.createElement(node));
+    const svg = ref.current.querySelector("svg");
+    if (svg) {
+      svg.setAttribute("width", size);
+      svg.setAttribute("height", size);
+      svg.setAttribute("stroke-width", strokeWidth);
+    }
+  }, [name, size, strokeWidth]);
+  return <span ref={ref} className={"inline-flex items-center justify-center " + className} aria-hidden="true" />;
+}
+function kebab(s) { return s.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase(); }
+
+// ---------- team ----------
+const TEAM_MEMBERS = [
+  "Carlos Gallego",
+  "Manuel Marchiani",
+  "Javier Serrano",
+  "Juan Ayala",
+  "Marina Casado",
+  "Manuel Llera"
+];
+
+const DESK_COUNT = 6;
+
+// ---------- date helpers (plain JS) ----------
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const isSameDay = (a, b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const isWeekend = d => d.getDay() === 0 || d.getDay() === 6;
+const startOfWeek = d => { // Mon=0
+  const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); x.setHours(0,0,0,0); return x;
+};
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1);
+const endOfMonth   = d => new Date(d.getFullYear(), d.getMonth()+1, 0);
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WEEKDAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const WEEKDAY_LONG  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+// ---------- name → stable color ----------
+// Fixed per-person assignment for maximum contrast between the 6 teammates.
+// Hues are spaced ~60° apart around the wheel; chroma kept uniform so they
+// read as one family despite the big hue distance.
+const PERSON_HUES = {
+  "Carlos Gallego":    30,   // terracotta
+  "Manuel Marchiani":  95,   // olive / warm green
+  "Javier Serrano":    160,  // teal
+  "Juan Ayala":        230,  // blue
+  "Marina Casado":     300,  // magenta / plum
+  "Manuel Llera":      355,  // rose red
+};
+// Fallback palette for any name not in the map (stable by index).
+const FALLBACK_HUES = [55, 125, 200, 265, 330];
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function chipStyle(name) {
+  const hue = PERSON_HUES[name] ?? FALLBACK_HUES[hashString(name) % FALLBACK_HUES.length];
+  return {
+    "--chip-bg":     `oklch(0.93 0.055 ${hue})`,
+    "--chip-border": `oklch(0.84 0.075 ${hue})`,
+    "--chip-fg":     `oklch(0.36 0.11 ${hue})`,
+  };
+}
+
+// ---------- storage layer ----------
+// Key: attendance:all  -> { "YYYY-MM-DD": [{id, name, slot}] }
+// Local per-device prefs via window.storage (non-shared).
+const SHARED_KEY = "attendance:all";
+const PREFS_KEY  = "attendance:prefs";
+
+function useStorage() {
+  const [bookings, setBookings] = useState({});       // date -> entries[]
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [savingCount, setSavingCount] = useState(0);
+  const [lastSync, setLastSync] = useState(null);
+  const pendingRef = useRef(null); // latest snapshot we've written
+
+  const refresh = useCallback(async () => {
+    try {
+      const raw = await window.storage.getItem(SHARED_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      // Don't stomp on in-flight local edits
+      if (!pendingRef.current) {
+        setBookings(parsed || {});
+      }
+      setLastSync(new Date());
+      setError(null);
+    } catch (e) {
+      setError(String(e?.message || e));
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await refresh();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    // Poll every 10s + on focus
+    const iv = setInterval(refresh, 10000);
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    return () => { mounted = false; clearInterval(iv); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+  }, [refresh]);
+
+  // Batched, debounced write
+  const writeTimer = useRef(null);
+  const commit = useCallback((mutator) => {
+    setBookings(prev => {
+      const next = mutator(prev);
+      pendingRef.current = next;
+      setSavingCount(c => c + 1);
+      clearTimeout(writeTimer.current);
+      writeTimer.current = setTimeout(async () => {
+        try {
+          await window.storage.setItem(SHARED_KEY, JSON.stringify(pendingRef.current));
+          setError(null);
+        } catch (e) {
+          setError(String(e?.message || e));
+        } finally {
+          pendingRef.current = null;
+          setSavingCount(c => Math.max(0, c - 1));
+          setLastSync(new Date());
+        }
+      }, 120); // batch
+      return next;
+    });
+  }, []);
+
+  return { bookings, loading, error, saving: savingCount > 0, lastSync, commit, refresh };
+}
+
+function usePrefs() {
+  const [prefs, setPrefs] = useState({ view: "month", user: null });
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await window.storage.getItem(PREFS_KEY);
+        if (raw) setPrefs(p => ({ ...p, ...JSON.parse(raw) }));
+      } catch {}
+      setReady(true);
+    })();
+  }, []);
+  const update = useCallback((patch) => {
+    setPrefs(p => {
+      const next = { ...p, ...patch };
+      // fire-and-forget
+      window.storage.setItem(PREFS_KEY, JSON.stringify(next)).catch(()=>{});
+      return next;
+    });
+  }, []);
+  return [prefs, update, ready];
+}
+
+// ---------- booking ops ----------
+function addBookings(bookings, dates, name, slot) {
+  const next = { ...bookings };
+  for (const date of dates) {
+    const list = (next[date] || []).slice();
+    // prevent exact duplicates (same person + slot on same day)
+    // also: if adding "full", remove that person's am/pm on that day
+    // if adding am/pm and they have "full", upgrade keep as-is (no change)
+    const existing = list.filter(b => b.name === name);
+    if (slot === "full") {
+      // remove all of this person's entries on that day
+      const pruned = list.filter(b => b.name !== name);
+      pruned.push({ id: crypto.randomUUID(), name, slot });
+      next[date] = pruned;
+    } else {
+      // am or pm; if they already have full, skip. if same slot exists, skip.
+      if (existing.some(b => b.slot === "full") || existing.some(b => b.slot === slot)) {
+        next[date] = list;
+      } else {
+        list.push({ id: crypto.randomUUID(), name, slot });
+        next[date] = list;
+      }
+    }
+  }
+  return next;
+}
+
+function removeBooking(bookings, date, id) {
+  const list = (bookings[date] || []).filter(b => b.id !== id);
+  const next = { ...bookings };
+  if (list.length) next[date] = list; else delete next[date];
+  return next;
+}
+
+function updateBookingSlot(bookings, date, id, newSlot) {
+  const list = (bookings[date] || []).map(b => b.id === id ? { ...b, slot: newSlot } : b);
+  return { ...bookings, [date]: list };
+}
+
+// ---------- UI pieces ----------
+function NameChip({ name, slot, onClick, size="sm", title }) {
+  const style = chipStyle(name);
+  const px = size === "lg" ? "px-2.5 py-1 text-[13px]" : "px-2 py-[3px] text-[11.5px]";
+  const cls = `chip inline-flex items-center gap-1.5 rounded-full font-medium leading-none max-w-full ${px} ${onClick ? "hover:brightness-[0.98] active:brightness-95 cursor-pointer" : ""}`;
+  const content = (
+    <>
+      <span className="chip-dot w-1.5 h-1.5 rounded-full shrink-0" />
+      <span className="truncate">{name}</span>
+      {slot !== "full" && (
+        <span className="text-[9.5px] font-semibold tracking-wider opacity-70 shrink-0">
+          {slot.toUpperCase()}
+        </span>
+      )}
+    </>
+  );
+  const tip = title || `${name}${slot!=="full" ? " · "+slot.toUpperCase() : ""}`;
+  // Render as <span> so NameChip can safely nest inside a button/clickable cell.
+  return (
+    <span
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined}
+      style={style}
+      title={tip}
+      className={cls}
+    >
+      {content}
+    </span>
+  );
+}
+
+function SlotPicker({ value, onChange, compact=false }) {
+  const opts = [
+    { k: "full", label: "Full day", sub: "09:00 – 18:00" },
+    { k: "am",   label: "Morning",  sub: "09:00 – 13:00" },
+    { k: "pm",   label: "Afternoon",sub: "14:00 – 18:00" },
+  ];
+  return (
+    <div className={`grid gap-2 ${compact ? "grid-cols-3" : "grid-cols-3"}`}>
+      {opts.map(o => {
+        const active = value === o.k;
+        return (
+          <button
+            key={o.k}
+            type="button"
+            onClick={() => onChange(o.k)}
+            className={`text-left rounded-[10px] border px-3 py-2.5 transition ${
+              active
+                ? "border-[oklch(0.65_0.12_40)] bg-[oklch(0.97_0.03_40)]"
+                : "border-[var(--line)] bg-white hover:border-[var(--line-2)]"
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className={`w-3 h-3 rounded-full border-2 ${active ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--line-2)] bg-transparent"}`} />
+              <span className="text-[13px] font-semibold">{o.label}</span>
+            </div>
+            <div className="text-[11px] text-[var(--ink-3)] mt-0.5 ml-[18px]">{o.sub}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- Modals ----------
+function Modal({ children, onClose, width="max-w-md" }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop animate-fade" onClick={onClose}>
+      <div
+        className={`${width} w-full bg-[var(--card)] rounded-[14px] card-shadow-lg animate-pop`}
+        onClick={e => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Booking modals ----------
+function SingleDayModal({ date, currentUser, bookings, onClose, onConfirm }) {
+  const entries = bookings[ymd(date)] || [];
+  const mine = entries.filter(e => e.name === currentUser);
+  const [slot, setSlot] = useState(() => {
+    if (mine.some(e => e.slot === "full")) return "full";
+    const has = mine.map(e => e.slot);
+    if (has.includes("am") && has.includes("pm")) return "full";
+    if (has.includes("am")) return "pm";
+    if (has.includes("pm")) return "am";
+    return "full";
+  });
+  const alreadyHas = (s) =>
+    mine.some(e => e.slot === "full") ||
+    mine.some(e => e.slot === s) ||
+    (s === "full" && mine.length > 0);
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-5 border-b border-[var(--line)]">
+        <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] font-semibold">Book the office</div>
+        <div className="mt-1 text-[22px] font-semibold leading-tight">
+          {WEEKDAY_LONG[(date.getDay()+6)%7]}, {date.getDate()} {MONTH_NAMES[date.getMonth()]}
+        </div>
+        <div className="mt-0.5 text-[13px] text-[var(--ink-2)]">Booking as <span className="font-semibold text-[var(--ink)]">{currentUser}</span></div>
+      </div>
+
+      <div className="p-5">
+        <div className="text-[12px] font-semibold text-[var(--ink-2)] mb-2">When will you be in?</div>
+        <SlotPicker value={slot} onChange={setSlot} />
+
+        {alreadyHas(slot) && (
+          <div className="mt-3 text-[12px] text-[var(--ink-3)] bg-[oklch(0.96_0.012_75)] border border-[var(--line)] rounded-lg px-3 py-2">
+            You already have this booked. Confirming will replace your existing entry.
+          </div>
+        )}
+
+        {entries.length > 0 && (
+          <div className="mt-4">
+            <div className="text-[12px] font-semibold text-[var(--ink-2)] mb-2">Others in that day</div>
+            <div className="flex flex-wrap gap-1.5">
+              {entries.map(e => <NameChip key={e.id} name={e.name} slot={e.slot} />)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 flex justify-end gap-2 border-t border-[var(--line)]">
+        <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        <button
+          className="btn-primary"
+          onClick={() => { onConfirm([ymd(date)], slot); onClose(); }}
+        >
+          Confirm booking
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function MultiDayModal({ anchor: initialAnchor, currentUser, bookings, onClose, onConfirm }) {
+  const [slot, setSlot] = useState("full");
+  const [selected, setSelected] = useState(() => new Set()); // set of "YYYY-MM-DD"
+  const [viewMonth, setViewMonth] = useState(() => startOfMonth(initialAnchor || new Date()));
+
+  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+
+  const toggle = useCallback((d) => {
+    const key = ymd(d);
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const selectAllWeekdaysInMonth = () => {
+    const s = startOfMonth(viewMonth), e = endOfMonth(viewMonth);
+    setSelected(prev => {
+      const next = new Set(prev);
+      for (let d = new Date(s); d <= e; d = addDays(d, 1)) {
+        if (!isWeekend(d) && d >= today) next.add(ymd(d));
+      }
+      return next;
+    });
+  };
+  const selectWeek = () => {
+    // select Mon-Fri of whatever week `viewMonth` aka the current anchor falls in; if viewing
+    // a month that is not current month, use the first weekday of that month's visible week.
+    const ref = (viewMonth.getMonth() === today.getMonth() && viewMonth.getFullYear() === today.getFullYear())
+      ? today : startOfMonth(viewMonth);
+    const mon = startOfWeek(ref);
+    setSelected(prev => {
+      const next = new Set(prev);
+      for (let i = 0; i < 5; i++) {
+        const d = addDays(mon, i);
+        if (d >= today) next.add(ymd(d));
+      }
+      return next;
+    });
+  };
+  const clearAll = () => setSelected(new Set());
+
+  // Calendar grid
+  const gridStart = startOfWeek(startOfMonth(viewMonth));
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    const row = [];
+    for (let i = 0; i < 7; i++) row.push(addDays(gridStart, w*7 + i));
+    weeks.push(row);
+  }
+
+  const sortedSelection = useMemo(
+    () => [...selected].sort().map(parseYmd),
+    [selected]
+  );
+
+  return (
+    <Modal onClose={onClose} width="max-w-2xl">
+      <div className="p-5 border-b border-[var(--line)] flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] font-semibold">
+            Book multiple days
+          </div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight">Pick your days</div>
+          <div className="mt-0.5 text-[13px] text-[var(--ink-2)]">
+            Click any day to toggle. Booking as <span className="font-semibold text-[var(--ink)]">{currentUser}</span>.
+          </div>
+        </div>
+        <button className="p-1.5 rounded-lg hover:bg-[oklch(0.94_0.01_75)]" onClick={onClose} aria-label="Close">
+          <Icon name="X" size={18} />
+        </button>
+      </div>
+
+      <div className="p-5 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-5">
+        {/* Calendar */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))}
+              className="btn-outline !p-1.5" aria-label="Previous month"
+            ><Icon name="ChevronLeft" size={14} /></button>
+            <div className="text-[14px] font-semibold">
+              {MONTH_NAMES[viewMonth.getMonth()]} {viewMonth.getFullYear()}
+            </div>
+            <button
+              onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))}
+              className="btn-outline !p-1.5" aria-label="Next month"
+            ><Icon name="ChevronRight" size={14} /></button>
+          </div>
+
+          <div className="grid grid-cols-7 text-[10px] uppercase tracking-[0.1em] font-semibold text-[var(--ink-3)] mb-1">
+            {WEEKDAY_SHORT.map(d => <div key={d} className="px-1 py-1">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {weeks.flat().map((d, i) => {
+              const key = ymd(d);
+              const inMonth = d.getMonth() === viewMonth.getMonth();
+              const weekend = isWeekend(d);
+              const isPast = d < today;
+              const isToday = isSameDay(d, today);
+              const isSel = selected.has(key);
+              const count = (bookings[key] || []).length;
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => toggle(d)}
+                  className={`relative h-12 rounded-[8px] text-[13px] font-medium flex flex-col items-center justify-center transition border
+                    ${isSel
+                      ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                      : weekend
+                        ? "bg-[var(--weekend)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--line-2)]"
+                        : "bg-white border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)]"
+                    }
+                    ${!inMonth ? "opacity-40" : ""}
+                    ${isPast ? "opacity-30 cursor-not-allowed" : ""}
+                    ${isToday && !isSel ? "ring-1 ring-[var(--accent)]" : ""}
+                  `}
+                >
+                  <span>{d.getDate()}</span>
+                  {count > 0 && !isSel && (
+                    <span className="absolute bottom-1 flex gap-[2px]">
+                      {Array.from({length: Math.min(count, 3)}).map((_, j) => (
+                        <span key={j} className="w-1 h-1 rounded-full bg-[var(--ink-3)]" />
+                      ))}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button onClick={selectWeek} className="btn-outline !py-1.5 !px-2.5 !text-[12px]">
+              + This week (Mon–Fri)
+            </button>
+            <button onClick={selectAllWeekdaysInMonth} className="btn-outline !py-1.5 !px-2.5 !text-[12px]">
+              + All weekdays in {MONTH_NAMES[viewMonth.getMonth()].slice(0,3)}
+            </button>
+            {selected.size > 0 && (
+              <button onClick={clearAll} className="btn-ghost !py-1.5 !px-2.5 !text-[12px]">
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right column: summary + slot */}
+        <div className="border-l border-[var(--line)] md:pl-5 md:border-l border-t md:border-t-0 pt-4 md:pt-0">
+          <div className="text-[12px] font-semibold text-[var(--ink-2)] mb-2">
+            Selected <span className="text-[var(--ink-3)] font-normal">({selected.size})</span>
+          </div>
+          {sortedSelection.length === 0 ? (
+            <div className="text-[12px] text-[var(--ink-3)] italic border border-dashed border-[var(--line)] rounded-[8px] px-3 py-4 text-center">
+              No days selected yet
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto pr-1">
+              {sortedSelection.map(d => (
+                <button
+                  key={ymd(d)}
+                  onClick={() => toggle(d)}
+                  className="text-[11.5px] px-2 py-1 rounded-md bg-[var(--accent-soft)] text-[oklch(0.4_0.1_40)] border border-[oklch(0.85_0.06_40)] hover:bg-[oklch(0.9_0.05_40)] inline-flex items-center gap-1"
+                  title="Remove"
+                >
+                  {WEEKDAY_SHORT[(d.getDay()+6)%7]} {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
+                  <Icon name="X" size={10} />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="text-[12px] font-semibold text-[var(--ink-2)] mt-4 mb-2">Which part of the day?</div>
+          <div className="grid grid-cols-1 gap-1.5">
+            {[
+              { k: "full", label: "Full day", sub: "09:00 – 18:00" },
+              { k: "am",   label: "Morning",  sub: "09:00 – 13:00" },
+              { k: "pm",   label: "Afternoon",sub: "14:00 – 18:00" },
+            ].map(o => {
+              const active = slot === o.k;
+              return (
+                <button
+                  key={o.k}
+                  onClick={() => setSlot(o.k)}
+                  className={`text-left rounded-[8px] border px-2.5 py-2 transition ${
+                    active
+                      ? "border-[var(--accent)] bg-[oklch(0.97_0.03_40)]"
+                      : "border-[var(--line)] bg-white hover:border-[var(--line-2)]"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2.5 h-2.5 rounded-full border-2 ${active ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--line-2)]"}`} />
+                    <span className="text-[12.5px] font-semibold">{o.label}</span>
+                  </div>
+                  <div className="text-[10.5px] text-[var(--ink-3)] ml-[16px]">{o.sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 flex items-center justify-between border-t border-[var(--line)]">
+        <div className="text-[11.5px] text-[var(--ink-3)]">
+          Tip: pick any mix of days — weekdays, individual weekend days, whatever works.
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-primary"
+            disabled={selected.size === 0}
+            onClick={() => { onConfirm([...selected], slot); onClose(); }}
+          >
+            Book {selected.size || 0} day{selected.size === 1 ? "" : "s"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function DayDetailModal({ date, bookings, currentUser, onClose, onDelete, onUpdateSlot, onAddClick }) {
+  const [confirmId, setConfirmId] = useState(null);
+  const key = ymd(date);
+  const entries = bookings[key] || [];
+
+  const grouped = {
+    full: entries.filter(e => e.slot === "full"),
+    am:   entries.filter(e => e.slot === "am"),
+    pm:   entries.filter(e => e.slot === "pm"),
+  };
+
+  return (
+    <Modal onClose={onClose} width="max-w-lg">
+      <div className="p-5 border-b border-[var(--line)] flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-3)] font-semibold">Who's in</div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight">
+            {WEEKDAY_LONG[(date.getDay()+6)%7]}, {date.getDate()} {MONTH_NAMES[date.getMonth()]}
+          </div>
+          <div className="mt-0.5 text-[13px] text-[var(--ink-2)]">
+            {entries.length} booking{entries.length===1?"":"s"} · {DESK_COUNT} desks in the hub
+          </div>
+        </div>
+        <button className="p-1.5 rounded-lg hover:bg-[oklch(0.94_0.01_75)]" onClick={onClose} aria-label="Close">
+          <Icon name="X" size={18} />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+        {entries.length === 0 && (
+          <div className="text-[13px] text-[var(--ink-3)] text-center py-6">
+            Nobody's booked this day yet.
+          </div>
+        )}
+
+        {["full", "am", "pm"].map(slot => grouped[slot].length > 0 && (
+          <div key={slot}>
+            <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--ink-3)] mb-2">
+              {slot === "full" ? "Full day" : slot === "am" ? "Morning" : "Afternoon"}
+              <span className="ml-1.5 text-[var(--ink-3)] font-normal normal-case tracking-normal">({grouped[slot].length})</span>
+            </div>
+            <ul className="space-y-1.5">
+              {grouped[slot].map(e => (
+                <li key={e.id} className="flex items-center gap-2 justify-between rounded-[10px] border border-[var(--line)] bg-white px-3 py-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span style={chipStyle(e.name)} className="chip-dot w-2.5 h-2.5 rounded-full shrink-0" />
+                    <span className="text-[14px] font-medium truncate">{e.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* slot change buttons */}
+                    <div className="segmented !p-[2px]">
+                      {["full","am","pm"].map(s => (
+                        <button
+                          key={s}
+                          aria-pressed={e.slot === s}
+                          onClick={() => onUpdateSlot(key, e.id, s)}
+                          className="!text-[11px] !px-2 !py-1"
+                        >
+                          {s === "full" ? "Full" : s.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    {confirmId === e.id ? (
+                      <div className="flex items-center gap-1 pl-1">
+                        <span className="text-[11px] text-[var(--ink-2)]">Delete?</span>
+                        <button onClick={() => { onDelete(key, e.id); setConfirmId(null); }}
+                          className="text-[11px] px-2 py-1 rounded-md bg-[oklch(0.6_0.14_25)] text-white font-semibold">Yes</button>
+                        <button onClick={() => setConfirmId(null)}
+                          className="text-[11px] px-2 py-1 rounded-md border border-[var(--line)] bg-white">No</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmId(e.id)}
+                        className="p-1.5 rounded-md text-[var(--ink-3)] hover:text-[oklch(0.55_0.14_25)] hover:bg-[oklch(0.96_0.03_25)]"
+                        aria-label="Delete booking"
+                      >
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 flex items-center justify-between border-t border-[var(--line)]">
+        <div className="text-[11.5px] text-[var(--ink-3)]">
+          Anyone can edit or remove bookings.
+        </div>
+        <button className="btn-primary inline-flex items-center gap-1.5" onClick={onAddClick}>
+          <Icon name="Plus" size={14} /> Add booking
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function NamePicker({ onPick }) {
+  const [hover, setHover] = useState(null);
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-[var(--card)] rounded-[16px] card-shadow-lg p-7">
+        <div className="flex items-center gap-2 text-[var(--accent)]">
+          <Icon name="Users" size={18} />
+          <span className="text-[12px] uppercase tracking-[0.14em] font-semibold">Office attendance</span>
+        </div>
+        <h1 className="mt-3 text-[26px] font-semibold leading-tight">Who are you?</h1>
+        <p className="mt-1.5 text-[14px] text-[var(--ink-2)]">
+          Pick your name so we can track which days you'll be in. You can change this later.
+        </p>
+        <div className="mt-5 space-y-2">
+          {TEAM_MEMBERS.map(name => (
+            <button
+              key={name}
+              onMouseEnter={() => setHover(name)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onPick(name)}
+              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--line)] bg-white px-4 py-3 text-left hover:border-[var(--accent)] hover:bg-[oklch(0.98_0.02_40)] transition"
+            >
+              <span style={chipStyle(name)} className="chip-dot w-2.5 h-2.5 rounded-full" />
+              <span className="text-[15px] font-medium">{name}</span>
+              <span className={`ml-auto text-[var(--accent)] transition-opacity ${hover === name ? "opacity-100" : "opacity-0"}`}>
+                <Icon name="ArrowRight" size={16} />
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-5 text-[11.5px] text-[var(--ink-3)] leading-relaxed">
+          Heads up: bookings are shared with everyone on the team. No passwords, nothing private here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Month view ----------
+function MonthView({ anchor, bookings, onDayClick, onDayDetails, currentUser }) {
+  // 6x7 grid starting Monday
+  const monthStart = startOfMonth(anchor);
+  const gridStart = startOfWeek(monthStart);
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    const row = [];
+    for (let i = 0; i < 7; i++) row.push(addDays(gridStart, w*7 + i));
+    weeks.push(row);
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  return (
+    <div className="bg-[var(--card)] rounded-[14px] border border-[var(--line)] card-shadow overflow-hidden">
+      <div className="grid grid-cols-7 text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--ink-3)] border-b border-[var(--line)] bg-[var(--bg-2)]">
+        {WEEKDAY_SHORT.map(d => (
+          <div key={d} className="px-3 py-2.5 text-left">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 auto-rows-fr">
+        {weeks.flat().map((d, i) => {
+          const key = ymd(d);
+          const inMonth = d.getMonth() === anchor.getMonth();
+          const weekend = isWeekend(d);
+          const entries = bookings[key] || [];
+          const isToday = isSameDay(d, today);
+          const isPast = d < today && !isToday;
+
+          return (
+            <DayCell
+              key={i}
+              date={d}
+              entries={entries}
+              inMonth={inMonth}
+              weekend={weekend}
+              isToday={isToday}
+              isPast={isPast}
+              currentUser={currentUser}
+              onQuickBook={() => onDayClick(d)}
+              onDetails={() => onDayDetails(d)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DayCell({ date, entries, inMonth, weekend, isToday, isPast, currentUser, onQuickBook, onDetails }) {
+  const [showAll, setShowAll] = useState(false);
+  const mineIn = entries.some(e => e.name === currentUser);
+
+  const MAX = 3;
+  const shown = showAll ? entries : entries.slice(0, MAX);
+  const extra = entries.length - shown.length;
+
+  return (
+    <div
+      className={`day-cell relative border-r border-b border-[var(--line)] min-h-[112px] p-2 flex flex-col
+        ${weekend ? "is-weekend bg-[var(--weekend)]" : ""}
+        ${isPast ? "is-past" : ""}
+        ${isToday ? "is-today" : ""}
+        ${!inMonth ? "opacity-55" : ""}
+      `}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[13px] font-semibold leading-none ${isToday ? "text-[var(--accent)]" : inMonth ? "text-[var(--ink)]" : "text-[var(--ink-3)]"}`}>
+            {date.getDate()}
+          </span>
+          {isToday && <span className="text-[9px] uppercase tracking-[0.1em] font-bold text-[var(--accent)]">Today</span>}
+          {mineIn && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" title="You're booked" />}
+        </div>
+
+        {!weekend && !isPast && (
+          <button
+            onClick={onQuickBook}
+            className="opacity-0 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 text-[var(--ink-3)] hover:text-[var(--accent)] rounded-md p-0.5 transition"
+            style={{ opacity: entries.length === 0 ? undefined : undefined }}
+            aria-label="Book this day"
+          >
+            <Icon name="Plus" size={13} />
+          </button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={entries.length > 0 ? onDetails : (!weekend && !isPast ? onQuickBook : undefined)}
+        className="mt-1.5 flex-1 flex flex-col gap-1 text-left -m-0.5 p-0.5 rounded-md"
+      >
+        {shown.map(e => (
+          <NameChip key={e.id} name={e.name} slot={e.slot} />
+        ))}
+        {extra > 0 && (
+          <span
+            onClick={(ev) => { ev.stopPropagation(); onDetails(); }}
+            className="text-[11px] text-[var(--ink-2)] font-medium hover:text-[var(--accent)] px-1.5 py-0.5 cursor-pointer"
+          >
+            +{extra} more
+          </span>
+        )}
+        {entries.length === 0 && !weekend && !isPast && (
+          <span className="text-[11px] text-[var(--ink-3)] opacity-0 hover:opacity-100 transition">Click to book</span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ---------- Week view ----------
+function WeekView({ anchor, bookings, currentUser, onDayClick, onDayDetails }) {
+  const mon = startOfWeek(anchor);
+  const days = Array.from({length: 7}, (_, i) => addDays(mon, i));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  return (
+    <div className="grid grid-cols-7 gap-3">
+      {days.map(d => {
+        const key = ymd(d);
+        const entries = bookings[key] || [];
+        const weekend = isWeekend(d);
+        const isToday = isSameDay(d, today);
+        const isPast = d < today && !isToday;
+        const mineIn = entries.some(e => e.name === currentUser);
+        const grouped = {
+          full: entries.filter(e => e.slot === "full"),
+          am:   entries.filter(e => e.slot === "am"),
+          pm:   entries.filter(e => e.slot === "pm"),
+        };
+
+        return (
+          <div
+            key={key}
+            className={`rounded-[14px] border card-shadow overflow-hidden flex flex-col min-h-[420px]
+              ${isToday ? "border-[var(--accent)]" : "border-[var(--line)]"}
+              ${weekend ? "bg-[var(--weekend)]" : "bg-[var(--card)]"}
+            `}
+          >
+            <div className="px-3.5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--ink-3)]">
+                  {WEEKDAY_SHORT[(d.getDay()+6)%7]}
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className={`text-[22px] font-semibold leading-none ${isToday ? "text-[var(--accent)]" : ""}`}>
+                    {d.getDate()}
+                  </span>
+                  <span className="text-[11px] text-[var(--ink-3)]">{MONTH_NAMES[d.getMonth()].slice(0,3)}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {mineIn && <span className="text-[10px] uppercase font-semibold tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] px-1.5 py-0.5 rounded-md">You</span>}
+                {!weekend && !isPast && (
+                  <button
+                    onClick={() => onDayClick(d)}
+                    className="p-1 rounded-md text-[var(--ink-3)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition"
+                    aria-label="Book"
+                  >
+                    <Icon name="Plus" size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={entries.length > 0 ? () => onDayDetails(d) : (!weekend && !isPast ? () => onDayClick(d) : undefined)}
+              className="flex-1 p-3 text-left space-y-3"
+            >
+              {entries.length === 0 && (
+                <div className="h-full flex items-center justify-center text-[12px] text-[var(--ink-3)] italic">
+                  {weekend ? "Weekend" : isPast ? "—" : "Empty"}
+                </div>
+              )}
+
+              {["full","am","pm"].map(slot => grouped[slot].length > 0 && (
+                <div key={slot}>
+                  <div className="text-[9.5px] uppercase tracking-[0.12em] font-bold text-[var(--ink-3)] mb-1.5">
+                    {slot === "full" ? "Full day" : slot === "am" ? "Morning" : "Afternoon"}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {grouped[slot].map(e => <NameChip key={e.id} name={e.name} slot={e.slot} />)}
+                  </div>
+                </div>
+              ))}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- Main app ----------
+function App() {
+  const { bookings, loading, error, saving, lastSync, commit } = useStorage();
+  const [prefs, setPrefs, prefsReady] = usePrefs();
+  const [anchor, setAnchor] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
+  const [bookingModal, setBookingModal] = useState(null); // {kind: 'day'|'multi', date}
+  const [detailsDate, setDetailsDate] = useState(null);
+
+  const view = prefs.view || "month";
+  const currentUser = prefs.user;
+
+  // Shift anchor when view changes
+  const goPrev = () => setAnchor(a => view === "month" ? new Date(a.getFullYear(), a.getMonth()-1, 1) : addDays(a, -7));
+  const goNext = () => setAnchor(a => view === "month" ? new Date(a.getFullYear(), a.getMonth()+1, 1) : addDays(a, +7));
+  const goToday = () => { const d = new Date(); d.setHours(0,0,0,0); setAnchor(d); };
+
+  const handleConfirm = useCallback((dates, slot) => {
+    commit(prev => addBookings(prev, dates, currentUser, slot));
+  }, [commit, currentUser]);
+
+  const handleDelete = useCallback((date, id) => {
+    commit(prev => removeBooking(prev, date, id));
+  }, [commit]);
+
+  const handleUpdateSlot = useCallback((date, id, slot) => {
+    commit(prev => updateBookingSlot(prev, date, id, slot));
+  }, [commit]);
+
+  // Stats for header
+  const headerLabel = useMemo(() => {
+    if (view === "month") return `${MONTH_NAMES[anchor.getMonth()]} ${anchor.getFullYear()}`;
+    const mon = startOfWeek(anchor), sun = addDays(mon, 6);
+    const sameMonth = mon.getMonth() === sun.getMonth();
+    return sameMonth
+      ? `${mon.getDate()} – ${sun.getDate()} ${MONTH_NAMES[mon.getMonth()]} ${mon.getFullYear()}`
+      : `${mon.getDate()} ${MONTH_NAMES[mon.getMonth()]} – ${sun.getDate()} ${MONTH_NAMES[sun.getMonth()]} ${mon.getFullYear()}`;
+  }, [anchor, view]);
+
+  const todayCount = (bookings[ymd(new Date())] || []).length;
+
+  if (!prefsReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[13px] text-[var(--ink-3)]">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <NamePicker onPick={(name) => setPrefs({ user: name })} />;
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 bg-[oklch(0.98_0.01_80_/_0.92)] backdrop-blur border-b border-[var(--line)]">
+        <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-[9px] bg-[var(--accent)] text-white flex items-center justify-center">
+              <Icon name="Building2" size={17} />
+            </div>
+            <div className="leading-tight">
+              <div className="text-[15px] font-semibold">Office hub</div>
+              <div className="text-[11px] text-[var(--ink-3)]">{DESK_COUNT} desks · shared with the team</div>
+            </div>
+          </div>
+
+          <div className="ml-6 flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1 text-[12.5px] text-[var(--ink-2)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]" />
+              <span><strong className="font-semibold text-[var(--ink)]">{todayCount}</strong> in today</span>
+            </div>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            {/* Sync indicator */}
+            <div className="hidden md:flex items-center gap-1.5 text-[11.5px] text-[var(--ink-3)]" title={lastSync ? "Synced " + lastSync.toLocaleTimeString() : "Syncing..."}>
+              {saving
+                ? <><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />Saving</>
+                : error
+                  ? <span className="text-[oklch(0.55_0.14_25)]">Sync error</span>
+                  : <><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]" />Live · shared</>}
+            </div>
+
+            {/* Current user */}
+            <div className="flex items-center gap-2 pl-3 ml-1 border-l border-[var(--line)]">
+              <span style={chipStyle(currentUser)} className="chip-dot w-2 h-2 rounded-full" />
+              <span className="text-[13px] font-medium">{currentUser}</span>
+              <button
+                onClick={() => setPrefs({ user: null })}
+                className="text-[11.5px] text-[var(--ink-3)] hover:text-[var(--accent)] underline underline-offset-2 decoration-dotted"
+              >
+                change
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Toolbar */}
+      <div className="max-w-[1400px] mx-auto px-6 pt-5 pb-3 flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1">
+          <button onClick={goPrev} className="btn-outline !p-2" aria-label="Previous">
+            <Icon name="ChevronLeft" size={16} />
+          </button>
+          <button onClick={goNext} className="btn-outline !p-2" aria-label="Next">
+            <Icon name="ChevronRight" size={16} />
+          </button>
+          <button onClick={goToday} className="btn-outline !ml-1">Today</button>
+        </div>
+
+        <h1 className="text-[22px] font-semibold tracking-tight">{headerLabel}</h1>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setBookingModal({ kind: "multi", date: anchor })}
+            className="btn-outline inline-flex items-center gap-1.5"
+          >
+            <Icon name="CalendarDays" size={15} />
+            Book multiple days
+          </button>
+
+          <button
+            onClick={() => setBookingModal({ kind: "day", date: new Date() })}
+            className="btn-primary inline-flex items-center gap-1.5"
+          >
+            <Icon name="Plus" size={15} />
+            Book a day
+          </button>
+
+          {/* View toggle */}
+          <div className="segmented ml-1">
+            <button aria-pressed={view === "month"} onClick={() => setPrefs({ view: "month" })}>
+              <span className="inline-flex items-center gap-1.5"><Icon name="LayoutGrid" size={13}/>Month</span>
+            </button>
+            <button aria-pressed={view === "week"} onClick={() => setPrefs({ view: "week" })}>
+              <span className="inline-flex items-center gap-1.5"><Icon name="Columns3" size={13}/>Week</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main className="max-w-[1400px] mx-auto px-6 pb-10">
+        {loading ? (
+          <div className="grid place-items-center py-20 text-[13px] text-[var(--ink-3)]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+              Loading bookings…
+            </div>
+          </div>
+        ) : error ? (
+          <div className="rounded-[12px] border border-[oklch(0.8_0.1_25)] bg-[oklch(0.97_0.03_25)] p-4 text-[13px] text-[oklch(0.4_0.12_25)]">
+            <strong>Couldn't load shared data.</strong> Retrying… <span className="opacity-70">({error})</span>
+          </div>
+        ) : view === "month" ? (
+          <MonthView
+            anchor={anchor}
+            bookings={bookings}
+            currentUser={currentUser}
+            onDayClick={(d) => {
+              if (isWeekend(d)) { setBookingModal({ kind: "day", date: d }); return; }
+              const today = new Date(); today.setHours(0,0,0,0);
+              if (d < today) { setDetailsDate(d); return; }
+              // if empty slot, go direct to book; if has entries, open details
+              const entries = bookings[ymd(d)] || [];
+              if (entries.length === 0) setBookingModal({ kind: "day", date: d });
+              else setDetailsDate(d);
+            }}
+            onDayDetails={(d) => setDetailsDate(d)}
+          />
+        ) : (
+          <WeekView
+            anchor={anchor}
+            bookings={bookings}
+            currentUser={currentUser}
+            onDayClick={(d) => setBookingModal({ kind: "day", date: d })}
+            onDayDetails={(d) => setDetailsDate(d)}
+          />
+        )}
+
+        {/* Legend */}
+        <div className="mt-6 flex items-center gap-4 flex-wrap text-[11.5px] text-[var(--ink-3)]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+            = you're booked
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-[var(--weekend)] border border-[var(--line)]">Sat/Sun</span>
+            = weekend (single-day bookings still allowed)
+          </span>
+          <span className="ml-auto">Press <span className="kbd">←</span> <span className="kbd">→</span> to navigate · <span className="kbd">M</span>/<span className="kbd">W</span> to switch view</span>
+        </div>
+      </main>
+
+      {/* Modals */}
+      {bookingModal?.kind === "day" && (
+        <SingleDayModal
+          date={bookingModal.date}
+          currentUser={currentUser}
+          bookings={bookings}
+          onClose={() => setBookingModal(null)}
+          onConfirm={handleConfirm}
+        />
+      )}
+      {bookingModal?.kind === "multi" && (
+        <MultiDayModal
+          anchor={bookingModal.date}
+          currentUser={currentUser}
+          bookings={bookings}
+          onClose={() => setBookingModal(null)}
+          onConfirm={handleConfirm}
+        />
+      )}
+      {detailsDate && (
+        <DayDetailModal
+          date={detailsDate}
+          bookings={bookings}
+          currentUser={currentUser}
+          onClose={() => setDetailsDate(null)}
+          onDelete={handleDelete}
+          onUpdateSlot={handleUpdateSlot}
+          onAddClick={() => { setBookingModal({ kind: "day", date: detailsDate }); setDetailsDate(null); }}
+        />
+      )}
+
+      {/* Global hotkeys */}
+      <HotKeys
+        onPrev={goPrev}
+        onNext={goNext}
+        onToday={goToday}
+        onMonth={() => setPrefs({ view: "month" })}
+        onWeek={() => setPrefs({ view: "week" })}
+        disabled={!!bookingModal || !!detailsDate}
+      />
+    </div>
+  );
+}
+
+function HotKeys({ onPrev, onNext, onToday, onMonth, onWeek, disabled }) {
+  useEffect(() => {
+    const h = e => {
+      if (disabled) return;
+      if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.key === "ArrowLeft") onPrev();
+      else if (e.key === "ArrowRight") onNext();
+      else if (e.key === "t" || e.key === "T") onToday();
+      else if (e.key === "m" || e.key === "M") onMonth();
+      else if (e.key === "w" || e.key === "W") onWeek();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onPrev, onNext, onToday, onMonth, onWeek, disabled]);
+  return null;
+}
+
+// ---------- fallback window.storage shim (so the prototype loads outside the host) ----------
+(function ensureStorage() {
+  if (typeof window.storage === "object" && window.storage && typeof window.storage.getItem === "function") return;
+  const mem = {};
+  window.storage = {
+    async getItem(k) {
+      try { return localStorage.getItem(k); }
+      catch { return mem[k] ?? null; }
+    },
+    async setItem(k, v) {
+      try { localStorage.setItem(k, v); }
+      catch { mem[k] = v; }
+    },
+    async removeItem(k) {
+      try { localStorage.removeItem(k); } catch { delete mem[k]; }
+    }
+  };
+})();
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
