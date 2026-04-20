@@ -19,6 +19,9 @@
 <!-- lucide: exposes window.lucide with all icons -->
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 
+<!-- Supabase JS client (UMD) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
 <style>
   :root {
     --bg: oklch(0.98 0.01 80);
@@ -252,27 +255,57 @@ function chipStyle(name) {
 }
 
 // ---------- storage layer ----------
-// Key: attendance:all  -> { "YYYY-MM-DD": [{id, name, slot}] }
-// Local per-device prefs via window.storage (non-shared).
-const SHARED_KEY = "attendance:all";
-const PREFS_KEY  = "attendance:prefs";
+// Supabase-backed. One row per booking: { id, date, name, slot, created_at }.
+// Per-device prefs (current user, view) live in localStorage.
+
+const SUPABASE_URL = "https://zpokuupcilnszzfmvrmq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwb2t1dXBjaWxuc3p6Zm12cm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTkzMDEsImV4cCI6MjA5MjI3NTMwMX0.O3__3vb2F3KlWERWTIoi5m3JNUGJZVQ_-qg7z_cqxw0";
+
+const sb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    })
+  : null;
+
+// Simple token-bucket rate limit (per-device). 60 writes / minute burstable to 10.
+const RL_CAPACITY = 10;
+const RL_REFILL_PER_SEC = 1; // 60/min
+let rlTokens = RL_CAPACITY;
+let rlLast = Date.now();
+function rateLimitTake() {
+  const now = Date.now();
+  const elapsed = (now - rlLast) / 1000;
+  rlTokens = Math.min(RL_CAPACITY, rlTokens + elapsed * RL_REFILL_PER_SEC);
+  rlLast = now;
+  if (rlTokens < 1) return false;
+  rlTokens -= 1;
+  return true;
+}
+
+// Turn a flat list of {date,name,slot,id} rows into date->entries[] map.
+function rowsToMap(rows) {
+  const map = {};
+  for (const r of rows) {
+    const key = r.date; // already "YYYY-MM-DD"
+    (map[key] = map[key] || []).push({ id: r.id, name: r.name, slot: r.slot });
+  }
+  return map;
+}
 
 function useStorage() {
-  const [bookings, setBookings] = useState({});       // date -> entries[]
+  const [bookings, setBookings] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [savingCount, setSavingCount] = useState(0);
   const [lastSync, setLastSync] = useState(null);
-  const pendingRef = useRef(null); // latest snapshot we've written
+  const [rateLimited, setRateLimited] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (!sb) { setError("Supabase client not loaded"); return; }
     try {
-      const raw = await window.storage.getItem(SHARED_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      // Don't stomp on in-flight local edits
-      if (!pendingRef.current) {
-        setBookings(parsed || {});
-      }
+      const { data, error: err } = await sb.from("bookings").select("id,date,name,slot");
+      if (err) throw err;
+      setBookings(rowsToMap(data || []));
       setLastSync(new Date());
       setError(null);
     } catch (e) {
@@ -280,110 +313,148 @@ function useStorage() {
     }
   }, []);
 
+  // Initial load + realtime subscription
   useEffect(() => {
     let mounted = true;
     (async () => {
-      try {
-        await refresh();
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      try { await refresh(); } finally { if (mounted) setLoading(false); }
     })();
 
-    // Poll every 10s + on focus
-    const iv = setInterval(refresh, 10000);
+    if (!sb) return;
+    const channel = sb
+      .channel("bookings-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        refresh();
+      })
+      .subscribe();
+
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
-    return () => { mounted = false; clearInterval(iv); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", onFocus);
+      try { sb.removeChannel(channel); } catch {}
+    };
   }, [refresh]);
 
-  // Batched, debounced write
-  const writeTimer = useRef(null);
-  const commit = useCallback((mutator) => {
-    setBookings(prev => {
-      const next = mutator(prev);
-      pendingRef.current = next;
-      setSavingCount(c => c + 1);
-      clearTimeout(writeTimer.current);
-      writeTimer.current = setTimeout(async () => {
-        try {
-          await window.storage.setItem(SHARED_KEY, JSON.stringify(pendingRef.current));
-          setError(null);
-        } catch (e) {
-          setError(String(e?.message || e));
-        } finally {
-          pendingRef.current = null;
-          setSavingCount(c => Math.max(0, c - 1));
-          setLastSync(new Date());
-        }
-      }, 120); // batch
-      return next;
-    });
-  }, []);
+  // Operations — insert/update/delete go directly to Supabase.
+  // We also optimistically update local state so the UI feels snappy.
 
-  return { bookings, loading, error, saving: savingCount > 0, lastSync, commit, refresh };
+  const doWithRateLimit = useCallback(async (fn) => {
+    if (!rateLimitTake()) {
+      setRateLimited(true);
+      setTimeout(() => setRateLimited(false), 2500);
+      throw new Error("Too many actions — slow down for a sec.");
+    }
+    setSavingCount(c => c + 1);
+    try {
+      await fn();
+      setError(null);
+    } catch (e) {
+      setError(String(e?.message || e));
+      // On failure, re-sync so the UI reflects server truth
+      refresh();
+      throw e;
+    } finally {
+      setSavingCount(c => Math.max(0, c - 1));
+      setLastSync(new Date());
+    }
+  }, [refresh]);
+
+  const insertBookings = useCallback(async (rows) => {
+    // rows: [{id, date, name, slot}]
+    if (!sb || rows.length === 0) return;
+    await doWithRateLimit(async () => {
+      // Optimistic
+      setBookings(prev => {
+        const next = { ...prev };
+        for (const r of rows) {
+          const list = (next[r.date] || []).slice();
+          list.push({ id: r.id, name: r.name, slot: r.slot });
+          next[r.date] = list;
+        }
+        return next;
+      });
+      const { error: err } = await sb.from("bookings").insert(rows);
+      if (err) throw err;
+    });
+  }, [doWithRateLimit]);
+
+  const deleteBooking = useCallback(async (date, id) => {
+    if (!sb) return;
+    await doWithRateLimit(async () => {
+      setBookings(prev => {
+        const list = (prev[date] || []).filter(b => b.id !== id);
+        const next = { ...prev };
+        if (list.length) next[date] = list; else delete next[date];
+        return next;
+      });
+      const { error: err } = await sb.from("bookings").delete().eq("id", id);
+      if (err) throw err;
+    });
+  }, [doWithRateLimit]);
+
+  const updateSlot = useCallback(async (date, id, slot) => {
+    if (!sb) return;
+    await doWithRateLimit(async () => {
+      setBookings(prev => {
+        const list = (prev[date] || []).map(b => b.id === id ? { ...b, slot } : b);
+        return { ...prev, [date]: list };
+      });
+      const { error: err } = await sb.from("bookings").update({ slot }).eq("id", id);
+      if (err) throw err;
+    });
+  }, [doWithRateLimit]);
+
+  return {
+    bookings, loading, error, saving: savingCount > 0, lastSync, rateLimited,
+    insertBookings, deleteBooking, updateSlot, refresh
+  };
 }
 
+// ---------- local-only prefs (current user + view) ----------
+const PREFS_KEY = "attendance:prefs";
 function usePrefs() {
   const [prefs, setPrefs] = useState({ view: "month", user: null });
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await window.storage.getItem(PREFS_KEY);
-        if (raw) setPrefs(p => ({ ...p, ...JSON.parse(raw) }));
-      } catch {}
-      setReady(true);
-    })();
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (raw) setPrefs(p => ({ ...p, ...JSON.parse(raw) }));
+    } catch {}
+    setReady(true);
   }, []);
   const update = useCallback((patch) => {
     setPrefs(p => {
       const next = { ...p, ...patch };
-      // fire-and-forget
-      window.storage.setItem(PREFS_KEY, JSON.stringify(next)).catch(()=>{});
+      try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
   return [prefs, update, ready];
 }
 
-// ---------- booking ops ----------
-function addBookings(bookings, dates, name, slot) {
-  const next = { ...bookings };
+// ---------- booking-insert shaping ----------
+// Given a desired (date,name,slot), produce the rows to INSERT after resolving
+// conflicts locally against current bookings. Returns { rowsToInsert, idsToDelete }.
+function planBookingInserts(bookings, dates, name, slot) {
+  const rowsToInsert = [];
+  const idsToDelete = [];
   for (const date of dates) {
-    const list = (next[date] || []).slice();
-    // prevent exact duplicates (same person + slot on same day)
-    // also: if adding "full", remove that person's am/pm on that day
-    // if adding am/pm and they have "full", upgrade keep as-is (no change)
-    const existing = list.filter(b => b.name === name);
+    const list = bookings[date] || [];
+    const mine = list.filter(b => b.name === name);
     if (slot === "full") {
-      // remove all of this person's entries on that day
-      const pruned = list.filter(b => b.name !== name);
-      pruned.push({ id: crypto.randomUUID(), name, slot });
-      next[date] = pruned;
+      // Replace all of this person's entries for that day with a single "full".
+      for (const b of mine) idsToDelete.push({ date, id: b.id });
+      rowsToInsert.push({ id: crypto.randomUUID(), date, name, slot: "full" });
     } else {
-      // am or pm; if they already have full, skip. if same slot exists, skip.
-      if (existing.some(b => b.slot === "full") || existing.some(b => b.slot === slot)) {
-        next[date] = list;
-      } else {
-        list.push({ id: crypto.randomUUID(), name, slot });
-        next[date] = list;
-      }
+      // am / pm
+      if (mine.some(b => b.slot === "full") || mine.some(b => b.slot === slot)) continue;
+      rowsToInsert.push({ id: crypto.randomUUID(), date, name, slot });
     }
   }
-  return next;
-}
-
-function removeBooking(bookings, date, id) {
-  const list = (bookings[date] || []).filter(b => b.id !== id);
-  const next = { ...bookings };
-  if (list.length) next[date] = list; else delete next[date];
-  return next;
-}
-
-function updateBookingSlot(bookings, date, id, newSlot) {
-  const list = (bookings[date] || []).map(b => b.id === id ? { ...b, slot: newSlot } : b);
-  return { ...bookings, [date]: list };
+  return { rowsToInsert, idsToDelete };
 }
 
 // ---------- UI pieces ----------
@@ -1089,7 +1160,7 @@ function WeekView({ anchor, bookings, currentUser, onDayClick, onDayDetails }) {
 
 // ---------- Main app ----------
 function App() {
-  const { bookings, loading, error, saving, lastSync, commit } = useStorage();
+  const { bookings, loading, error, saving, lastSync, rateLimited, insertBookings, deleteBooking, updateSlot } = useStorage();
   const [prefs, setPrefs, prefsReady] = usePrefs();
   const [anchor, setAnchor] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
   const [bookingModal, setBookingModal] = useState(null); // {kind: 'day'|'multi', date}
@@ -1103,17 +1174,24 @@ function App() {
   const goNext = () => setAnchor(a => view === "month" ? new Date(a.getFullYear(), a.getMonth()+1, 1) : addDays(a, +7));
   const goToday = () => { const d = new Date(); d.setHours(0,0,0,0); setAnchor(d); };
 
-  const handleConfirm = useCallback((dates, slot) => {
-    commit(prev => addBookings(prev, dates, currentUser, slot));
-  }, [commit, currentUser]);
+  const handleConfirm = useCallback(async (dates, slot) => {
+    const { rowsToInsert, idsToDelete } = planBookingInserts(bookings, dates, currentUser, slot);
+    // Delete "full"-replaced conflicts first (each has its own date), then insert
+    for (const { date, id } of idsToDelete) {
+      try { await deleteBooking(date, id); } catch {}
+    }
+    if (rowsToInsert.length) {
+      try { await insertBookings(rowsToInsert); } catch {}
+    }
+  }, [bookings, currentUser, insertBookings, deleteBooking]);
 
-  const handleDelete = useCallback((date, id) => {
-    commit(prev => removeBooking(prev, date, id));
-  }, [commit]);
+  const handleDelete = useCallback(async (date, id) => {
+    try { await deleteBooking(date, id); } catch {}
+  }, [deleteBooking]);
 
-  const handleUpdateSlot = useCallback((date, id, slot) => {
-    commit(prev => updateBookingSlot(prev, date, id, slot));
-  }, [commit]);
+  const handleUpdateSlot = useCallback(async (date, id, slot) => {
+    try { await updateSlot(date, id, slot); } catch {}
+  }, [updateSlot]);
 
   // Stats for header
   const headerLabel = useMemo(() => {
@@ -1164,11 +1242,13 @@ function App() {
           <div className="ml-auto flex items-center gap-2">
             {/* Sync indicator */}
             <div className="hidden md:flex items-center gap-1.5 text-[11.5px] text-[var(--ink-3)]" title={lastSync ? "Synced " + lastSync.toLocaleTimeString() : "Syncing..."}>
-              {saving
-                ? <><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />Saving</>
-                : error
-                  ? <span className="text-[oklch(0.55_0.14_25)]">Sync error</span>
-                  : <><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]" />Live · shared</>}
+              {rateLimited
+                ? <span className="text-[oklch(0.55_0.14_60)]">Slow down ✋</span>
+                : saving
+                  ? <><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />Saving</>
+                  : error
+                    ? <span className="text-[oklch(0.55_0.14_25)]" title={error}>Sync error</span>
+                    : <><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]" />Live · shared</>}
             </div>
 
             {/* Current user */}
@@ -1343,24 +1423,10 @@ function HotKeys({ onPrev, onNext, onToday, onMonth, onWeek, disabled }) {
   return null;
 }
 
-// ---------- fallback window.storage shim (so the prototype loads outside the host) ----------
-(function ensureStorage() {
-  if (typeof window.storage === "object" && window.storage && typeof window.storage.getItem === "function") return;
-  const mem = {};
-  window.storage = {
-    async getItem(k) {
-      try { return localStorage.getItem(k); }
-      catch { return mem[k] ?? null; }
-    },
-    async setItem(k, v) {
-      try { localStorage.setItem(k, v); }
-      catch { mem[k] = v; }
-    },
-    async removeItem(k) {
-      try { localStorage.removeItem(k); } catch { delete mem[k]; }
-    }
-  };
-})();
+// ---------- fallback shim for Supabase client (prevents blank page if CDN fails) ----------
+if (!window.supabase) {
+  console.warn("[attendance] Supabase client failed to load. Running in read-only fallback.");
+}
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
