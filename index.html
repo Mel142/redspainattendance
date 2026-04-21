@@ -200,12 +200,18 @@ function kebab(s) { return s.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase(); 
 
 // ---------- team ----------
 const TEAM_MEMBERS = [
+  "Alberto Marquez",
+  "Antonio Ruiz",
   "Carlos Gallego",
-  "Manuel Marchiani",
+  "Diogo Vidigal",
   "Javier Serrano",
   "Juan Ayala",
+  "Manuel Llera",
+  "Manuel Marchiani",
   "Marina Casado",
-  "Manuel Llera"
+  "Michael Coe",
+  "Ricardo García",
+  "Rustico De Jesús",
 ];
 
 const DESK_COUNT = 6;
@@ -227,16 +233,22 @@ const WEEKDAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const WEEKDAY_LONG  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 // ---------- name → stable color ----------
-// Fixed per-person assignment for maximum contrast between the 6 teammates.
-// Hues are spaced ~60° apart around the wheel; chroma kept uniform so they
-// read as one family despite the big hue distance.
+// Fixed per-person assignment for maximum contrast between the 12 teammates.
+// Hues are spaced 30° apart around the wheel to maintain a distinct "family" 
+// look with uniform chroma.
 const PERSON_HUES = {
-  "Carlos Gallego":    30,   // terracotta
-  "Manuel Marchiani":  95,   // olive / warm green
-  "Javier Serrano":    160,  // teal
-  "Juan Ayala":        230,  // blue
-  "Marina Casado":     300,  // magenta / plum
-  "Manuel Llera":      355,  // rose red
+  "Alberto Marquez":   0,   // Red
+  "Antonio Ruiz":      30,  // Terracotta / Orange
+  "Carlos Gallego":    60,  // Gold / Yellow
+  "Diogo Vidigal":     90,  // Chartreuse / Lime
+  "Javier Serrano":    120, // Green
+  "Juan Ayala":        150, // Spring Green / Teal
+  "Manuel Llera":      180, // Cyan
+  "Manuel Marchiani":  210, // Sky Blue
+  "Marina Casado":     240, // Blue
+  "Michael Coe":       270, // Violet / Purple
+  "Ricardo García":    300, // Magenta / Plum
+  "Rustico De Jesús":  330, // Pink / Rose
 };
 // Fallback palette for any name not in the map (stable by index).
 const FALLBACK_HUES = [55, 125, 200, 265, 330];
