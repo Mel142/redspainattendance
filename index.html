@@ -12,32 +12,34 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <!-- lucide: exposes window.lucide with all icons -->
-<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" integrity="sha384-ieG+IKD0d/ZPXyCBTMVAbqsQdns8QGJR/e26WMw7M4fkaI/rHcS/YIoi+ah9WGge" crossorigin="anonymous"></script>
 
 <!-- Supabase JS client (UMD) -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 
 <style>
   :root {
-    --bg: oklch(0.98 0.01 80);
-    --bg-2: oklch(0.96 0.012 75);
-    --card: oklch(0.995 0.006 85);
-    --ink: oklch(0.28 0.02 50);
-    --ink-2: oklch(0.45 0.02 55);
-    --ink-3: oklch(0.62 0.015 60);
-    --line: oklch(0.9 0.012 70);
-    --line-2: oklch(0.85 0.015 70);
-    --accent: oklch(0.65 0.12 40);     /* terracotta */
-    --accent-soft: oklch(0.93 0.04 45);
-    --sage: oklch(0.72 0.05 150);
-    --blue: oklch(0.72 0.06 240);
-    --weekend: oklch(0.955 0.012 75);
+    --bg: #FFFFFF;
+    --bg-2: rgba(29,65,148,0.03);
+    --card: #FFFFFF;
+    --ink: #003B64;
+    --ink-2: rgba(29,65,148,0.65);
+    --ink-3: rgba(29,65,148,0.45);
+    --line: rgba(29,65,148,0.12);
+    --line-2: rgba(29,65,148,0.22);
+    --accent: #009EE3;
+    --accent-soft: rgba(0,158,227,0.10);
+    --sage: #00CCCC;
+    --blue: #1D4194;
+    --weekend: rgba(29,65,148,0.04);
+    --holiday: rgba(0,204,204,0.10);
   }
+
   html, body, #root { height: 100%; }
   body {
     margin: 0;
@@ -51,35 +53,36 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-thumb { background: oklch(0.88 0.015 70); border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(0.8 0.02 65); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,59,100,0.15); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,59,100,0.28); }
 
   /* Subtle card shadow */
-  .card-shadow { box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 2px 8px rgba(60, 40, 20, 0.04); }
-  .card-shadow-lg { box-shadow: 0 4px 12px rgba(60, 40, 20, 0.06), 0 12px 32px rgba(60, 40, 20, 0.08); }
+  .card-shadow { box-shadow: 0 1px 2px rgba(0,59,100,0.06), 0 2px 8px rgba(0,59,100,0.06); }
+  .card-shadow-lg { box-shadow: 0 4px 12px rgba(0,59,100,0.10), 0 12px 32px rgba(0,59,100,0.12); }
 
-  /* Chip hue variants (we set CSS vars inline from JS) */
+  /* Chip: uniform Engie Blue wash */
   .chip {
-    background: var(--chip-bg, oklch(0.94 0.03 40));
-    color: var(--chip-fg, oklch(0.35 0.06 40));
-    border: 1px solid var(--chip-border, oklch(0.88 0.04 40));
+    background: var(--chip-bg, rgba(0,158,227,0.10));
+    color: var(--chip-fg, #003B64);
+    border: 1px solid var(--chip-border, rgba(0,158,227,0.25));
   }
   .chip-dot {
-    background: var(--chip-fg, oklch(0.35 0.06 40));
+    background: var(--chip-fg, #003B64);
   }
 
   button:focus-visible, [role=button]:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 2px solid oklch(0.7 0.08 40);
+    outline: 2px solid #009EE3;
     outline-offset: 2px;
   }
 
   /* Day cell hover */
   .day-cell { transition: background-color 120ms ease, border-color 120ms ease; }
-  .day-cell:hover:not(.is-past):not(.is-weekend) { background: oklch(0.975 0.015 75); }
+  .day-cell:hover:not(.is-past):not(.is-weekend):not(.is-holiday) { background: rgba(0,158,227,0.05); }
+  .day-cell.is-holiday:hover:not(.is-past) { background: rgba(0,204,204,0.18); }
   .day-cell.is-today { box-shadow: inset 0 0 0 1.5px var(--accent); }
 
   .segmented {
-    background: oklch(0.94 0.01 75);
+    background: rgba(0,158,227,0.08);
     border-radius: 10px;
     padding: 3px;
     display: inline-flex;
@@ -96,12 +99,12 @@
   .segmented button[aria-pressed="true"] {
     background: var(--card);
     color: var(--ink);
-    box-shadow: 0 1px 2px rgba(60,40,20,0.06), 0 1px 4px rgba(60,40,20,0.04);
+    box-shadow: 0 1px 2px rgba(0,59,100,0.10), 0 1px 4px rgba(0,59,100,0.06);
   }
 
   .btn-primary {
     background: var(--accent);
-    color: oklch(0.99 0.005 80);
+    color: #003B64;
     font-weight: 500;
     border-radius: 10px;
     padding: 9px 16px;
@@ -121,7 +124,7 @@
     font-weight: 500;
     transition: background 120ms ease, color 120ms ease;
   }
-  .btn-ghost:hover { background: oklch(0.94 0.01 75); color: var(--ink); }
+  .btn-ghost:hover { background: rgba(0,158,227,0.07); color: var(--ink); }
 
   .btn-outline {
     background: var(--card);
@@ -133,11 +136,11 @@
     font-weight: 500;
     transition: background 120ms ease, border-color 120ms ease;
   }
-  .btn-outline:hover { background: oklch(0.97 0.01 75); border-color: var(--line-2); }
+  .btn-outline:hover { background: rgba(0,158,227,0.05); border-color: var(--line-2); }
 
   .btn-danger {
-    background: oklch(0.6 0.14 25);
-    color: oklch(0.99 0.005 80);
+    background: oklch(0.55 0.18 25);
+    color: #FFFFFF;
     border-radius: 10px;
     padding: 9px 16px;
     font-size: 14px;
@@ -146,7 +149,7 @@
   .btn-danger:hover { filter: brightness(0.95); }
 
   .modal-backdrop {
-    background: oklch(0.25 0.02 50 / 0.35);
+    background: rgba(0,59,100,0.35);
     backdrop-filter: blur(3px);
   }
 
@@ -204,6 +207,7 @@ const TEAM_MEMBERS = [
   "Antonio Ruiz",
   "Carlos Gallego",
   "Diogo Vidigal",
+  "Ivan Puchades",
   "Javier Serrano",
   "Juan Ayala",
   "Manuel Llera",
@@ -214,7 +218,23 @@ const TEAM_MEMBERS = [
   "Rustico De Jesús",
 ];
 
-const DESK_COUNT = 6;
+// ---------- 2026 Madrid public holidays ----------
+const BANK_HOLIDAYS_2026 = {
+  "2026-01-01": "New Year's Day",
+  "2026-01-06": "Epiphany",
+  "2026-04-02": "Maundy Thursday",
+  "2026-04-03": "Good Friday",
+  "2026-05-01": "Labour Day",
+  "2026-05-02": "Madrid Community Day",
+  "2026-05-15": "San Isidro",
+  "2026-08-15": "Assumption",
+  "2026-10-12": "National Day",
+  "2026-11-02": "All Saints' Day",
+  "2026-11-09": "La Almudena",
+  "2026-12-07": "Constitution Day",
+  "2026-12-08": "Immaculate Conception",
+  "2026-12-25": "Christmas Day",
+};
 
 // ---------- date helpers (plain JS) ----------
 const pad = n => String(n).padStart(2, "0");
@@ -232,37 +252,12 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const WEEKDAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const WEEKDAY_LONG  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
-// ---------- name → stable color ----------
-// Fixed per-person assignment for maximum contrast between the 12 teammates.
-// Hues are spaced 30° apart around the wheel to maintain a distinct "family" 
-// look with uniform chroma.
-const PERSON_HUES = {
-  "Alberto Marquez":   0,   // Red
-  "Antonio Ruiz":      30,  // Terracotta / Orange
-  "Carlos Gallego":    60,  // Gold / Yellow
-  "Diogo Vidigal":     90,  // Chartreuse / Lime
-  "Javier Serrano":    120, // Green
-  "Juan Ayala":        150, // Spring Green / Teal
-  "Manuel Llera":      180, // Cyan
-  "Manuel Marchiani":  210, // Sky Blue
-  "Marina Casado":     240, // Blue
-  "Michael Coe":       270, // Violet / Purple
-  "Ricardo García":    300, // Magenta / Plum
-  "Rustico De Jesús":  330, // Pink / Rose
-};
-// Fallback palette for any name not in the map (stable by index).
-const FALLBACK_HUES = [55, 125, 200, 265, 330];
-function hashString(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function chipStyle(name) {
-  const hue = PERSON_HUES[name] ?? FALLBACK_HUES[hashString(name) % FALLBACK_HUES.length];
+// ---------- chip style: uniform Engie Blue brand wash ----------
+function chipStyle() {
   return {
-    "--chip-bg":     `oklch(0.93 0.055 ${hue})`,
-    "--chip-border": `oklch(0.84 0.075 ${hue})`,
-    "--chip-fg":     `oklch(0.36 0.11 ${hue})`,
+    "--chip-bg":     "rgba(0,158,227,0.10)",
+    "--chip-border": "rgba(0,158,227,0.25)",
+    "--chip-fg":     "#003B64",
   };
 }
 
@@ -433,7 +428,12 @@ function usePrefs() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PREFS_KEY);
-      if (raw) setPrefs(p => ({ ...p, ...JSON.parse(raw) }));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const safeView = ["month", "week"].includes(parsed.view) ? parsed.view : "month";
+        const safeUser = TEAM_MEMBERS.includes(parsed.user) ? parsed.user : null;
+        setPrefs(p => ({ ...p, view: safeView, user: safeUser }));
+      }
     } catch {}
     setReady(true);
   }, []);
@@ -450,7 +450,9 @@ function usePrefs() {
 // ---------- booking-insert shaping ----------
 // Given a desired (date,name,slot), produce the rows to INSERT after resolving
 // conflicts locally against current bookings. Returns { rowsToInsert, idsToDelete }.
+const VALID_SLOTS = new Set(["full", "am", "pm"]);
 function planBookingInserts(bookings, dates, name, slot) {
+  if (!VALID_SLOTS.has(slot) || !TEAM_MEMBERS.includes(name)) return { rowsToInsert: [], idsToDelete: [] };
   const rowsToInsert = [];
   const idsToDelete = [];
   for (const date of dates) {
@@ -519,8 +521,8 @@ function SlotPicker({ value, onChange, compact=false }) {
             onClick={() => onChange(o.k)}
             className={`text-left rounded-[10px] border px-3 py-2.5 transition ${
               active
-                ? "border-[oklch(0.65_0.12_40)] bg-[oklch(0.97_0.03_40)]"
-                : "border-[var(--line)] bg-white hover:border-[var(--line-2)]"
+                ? "border-[#009EE3] bg-[rgba(0,158,227,0.10)]"
+                : "border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]"
             }`}
           >
             <div className="flex items-center gap-1.5">
@@ -586,7 +588,7 @@ function SingleDayModal({ date, currentUser, bookings, onClose, onConfirm }) {
         <SlotPicker value={slot} onChange={setSlot} />
 
         {alreadyHas(slot) && (
-          <div className="mt-3 text-[12px] text-[var(--ink-3)] bg-[oklch(0.96_0.012_75)] border border-[var(--line)] rounded-lg px-3 py-2">
+          <div className="mt-3 text-[12px] text-[var(--ink-3)] bg-[rgba(0,158,227,0.06)] border border-[var(--line)] rounded-lg px-3 py-2">
             You already have this booked. Confirming will replace your existing entry.
           </div>
         )}
@@ -683,7 +685,7 @@ function MultiDayModal({ anchor: initialAnchor, currentUser, bookings, onClose, 
             Click any day to toggle. Booking as <span className="font-semibold text-[var(--ink)]">{currentUser}</span>.
           </div>
         </div>
-        <button className="p-1.5 rounded-lg hover:bg-[oklch(0.94_0.01_75)]" onClick={onClose} aria-label="Close">
+        <button className="p-1.5 rounded-lg hover:bg-[rgba(0,158,227,0.08)]" onClick={onClose} aria-label="Close">
           <Icon name="X" size={18} />
         </button>
       </div>
@@ -729,7 +731,7 @@ function MultiDayModal({ anchor: initialAnchor, currentUser, bookings, onClose, 
                       ? "bg-[var(--accent)] text-white border-[var(--accent)]"
                       : weekend
                         ? "bg-[var(--weekend)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--line-2)]"
-                        : "bg-white border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)]"
+                        : "bg-[var(--card)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)]"
                     }
                     ${!inMonth ? "opacity-40" : ""}
                     ${isPast ? "opacity-30 cursor-not-allowed" : ""}
@@ -779,7 +781,7 @@ function MultiDayModal({ anchor: initialAnchor, currentUser, bookings, onClose, 
                 <button
                   key={ymd(d)}
                   onClick={() => toggle(d)}
-                  className="text-[11.5px] px-2 py-1 rounded-md bg-[var(--accent-soft)] text-[oklch(0.4_0.1_40)] border border-[oklch(0.85_0.06_40)] hover:bg-[oklch(0.9_0.05_40)] inline-flex items-center gap-1"
+                  className="text-[11.5px] px-2 py-1 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] border border-[rgba(0,158,227,0.30)] hover:bg-[rgba(0,158,227,0.20)] inline-flex items-center gap-1"
                   title="Remove"
                 >
                   {WEEKDAY_SHORT[(d.getDay()+6)%7]} {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
@@ -803,8 +805,8 @@ function MultiDayModal({ anchor: initialAnchor, currentUser, bookings, onClose, 
                   onClick={() => setSlot(o.k)}
                   className={`text-left rounded-[8px] border px-2.5 py-2 transition ${
                     active
-                      ? "border-[var(--accent)] bg-[oklch(0.97_0.03_40)]"
-                      : "border-[var(--line)] bg-white hover:border-[var(--line-2)]"
+                      ? "border-[var(--accent)] bg-[rgba(0,158,227,0.10)]"
+                      : "border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]"
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
@@ -858,10 +860,10 @@ function DayDetailModal({ date, bookings, currentUser, onClose, onDelete, onUpda
             {WEEKDAY_LONG[(date.getDay()+6)%7]}, {date.getDate()} {MONTH_NAMES[date.getMonth()]}
           </div>
           <div className="mt-0.5 text-[13px] text-[var(--ink-2)]">
-            {entries.length} booking{entries.length===1?"":"s"} · {DESK_COUNT} desks in the hub
+            {entries.length} booking{entries.length===1?"":"s"} · shared office
           </div>
         </div>
-        <button className="p-1.5 rounded-lg hover:bg-[oklch(0.94_0.01_75)]" onClick={onClose} aria-label="Close">
+        <button className="p-1.5 rounded-lg hover:bg-[rgba(0,158,227,0.08)]" onClick={onClose} aria-label="Close">
           <Icon name="X" size={18} />
         </button>
       </div>
@@ -881,7 +883,7 @@ function DayDetailModal({ date, bookings, currentUser, onClose, onDelete, onUpda
             </div>
             <ul className="space-y-1.5">
               {grouped[slot].map(e => (
-                <li key={e.id} className="flex items-center gap-2 justify-between rounded-[10px] border border-[var(--line)] bg-white px-3 py-2">
+                <li key={e.id} className="flex items-center gap-2 justify-between rounded-[10px] border border-[var(--line)] bg-[var(--card)] px-3 py-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span style={chipStyle(e.name)} className="chip-dot w-2.5 h-2.5 rounded-full shrink-0" />
                     <span className="text-[14px] font-medium truncate">{e.name}</span>
@@ -904,14 +906,14 @@ function DayDetailModal({ date, bookings, currentUser, onClose, onDelete, onUpda
                       <div className="flex items-center gap-1 pl-1">
                         <span className="text-[11px] text-[var(--ink-2)]">Delete?</span>
                         <button onClick={() => { onDelete(key, e.id); setConfirmId(null); }}
-                          className="text-[11px] px-2 py-1 rounded-md bg-[oklch(0.6_0.14_25)] text-white font-semibold">Yes</button>
+                          className="text-[11px] px-2 py-1 rounded-md bg-[oklch(0.55_0.18_25)] text-white font-semibold">Yes</button>
                         <button onClick={() => setConfirmId(null)}
-                          className="text-[11px] px-2 py-1 rounded-md border border-[var(--line)] bg-white">No</button>
+                          className="text-[11px] px-2 py-1 rounded-md border border-[var(--line)] bg-[var(--card)]">No</button>
                       </div>
                     ) : (
                       <button
                         onClick={() => setConfirmId(e.id)}
-                        className="p-1.5 rounded-md text-[var(--ink-3)] hover:text-[oklch(0.55_0.14_25)] hover:bg-[oklch(0.96_0.03_25)]"
+                        className="p-1.5 rounded-md text-[var(--ink-3)] hover:text-[oklch(0.70_0.18_25)] hover:bg-[rgba(220,50,50,0.15)]"
                         aria-label="Delete booking"
                       >
                         <Icon name="Trash2" size={14} />
@@ -957,7 +959,7 @@ function NamePicker({ onPick }) {
               onMouseEnter={() => setHover(name)}
               onMouseLeave={() => setHover(null)}
               onClick={() => onPick(name)}
-              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--line)] bg-white px-4 py-3 text-left hover:border-[var(--accent)] hover:bg-[oklch(0.98_0.02_40)] transition"
+              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] px-4 py-3 text-left hover:border-[var(--accent)] hover:bg-[rgba(0,158,227,0.07)] transition"
             >
               <span style={chipStyle(name)} className="chip-dot w-2.5 h-2.5 rounded-full" />
               <span className="text-[15px] font-medium">{name}</span>
@@ -990,10 +992,15 @@ function MonthView({ anchor, bookings, onDayClick, onDayDetails, currentUser }) 
 
   return (
     <div className="bg-[var(--card)] rounded-[14px] border border-[var(--line)] card-shadow overflow-hidden">
-      <div className="grid grid-cols-7 text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--ink-3)] border-b border-[var(--line)] bg-[var(--bg-2)]">
-        {WEEKDAY_SHORT.map(d => (
-          <div key={d} className="px-3 py-2.5 text-left">{d}</div>
-        ))}
+      <div className="grid grid-cols-7 text-[11px] uppercase tracking-[0.1em] font-semibold border-b border-[var(--line)]">
+        {WEEKDAY_SHORT.map((d, i) => {
+          const isWknd = i >= 5;
+          return (
+            <div key={d} className={`px-3 py-2.5 text-left bg-[var(--bg-2)] text-[var(--ink-3)] ${isWknd ? "opacity-60" : ""}`}>
+              {d}
+            </div>
+          );
+        })}
       </div>
       <div className="grid grid-cols-7 auto-rows-fr">
         {weeks.flat().map((d, i) => {
@@ -1014,6 +1021,7 @@ function MonthView({ anchor, bookings, onDayClick, onDayDetails, currentUser }) 
               isToday={isToday}
               isPast={isPast}
               currentUser={currentUser}
+              holiday={BANK_HOLIDAYS_2026[key] || null}
               onQuickBook={() => onDayClick(d)}
               onDetails={() => onDayDetails(d)}
             />
@@ -1024,7 +1032,7 @@ function MonthView({ anchor, bookings, onDayClick, onDayDetails, currentUser }) 
   );
 }
 
-function DayCell({ date, entries, inMonth, weekend, isToday, isPast, currentUser, onQuickBook, onDetails }) {
+function DayCell({ date, entries, inMonth, weekend, isToday, isPast, currentUser, onQuickBook, onDetails, holiday }) {
   const [showAll, setShowAll] = useState(false);
   const mineIn = entries.some(e => e.name === currentUser);
 
@@ -1035,19 +1043,24 @@ function DayCell({ date, entries, inMonth, weekend, isToday, isPast, currentUser
   return (
     <div
       className={`day-cell relative border-r border-b border-[var(--line)] min-h-[112px] p-2 flex flex-col
-        ${weekend ? "is-weekend bg-[var(--weekend)]" : ""}
+        ${weekend ? "is-weekend bg-[var(--weekend)]" : holiday ? "is-holiday bg-[var(--holiday)]" : ""}
         ${isPast ? "is-past" : ""}
         ${isToday ? "is-today" : ""}
         ${!inMonth ? "opacity-55" : ""}
       `}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-[13px] font-semibold leading-none ${isToday ? "text-[var(--accent)]" : inMonth ? "text-[var(--ink)]" : "text-[var(--ink-3)]"}`}>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className={`text-[13px] font-semibold leading-none shrink-0 ${isToday ? "text-[var(--accent)]" : inMonth ? "text-[var(--ink)]" : "text-[var(--ink-3)]"}`}>
             {date.getDate()}
           </span>
-          {isToday && <span className="text-[9px] uppercase tracking-[0.1em] font-bold text-[var(--accent)]">Today</span>}
-          {mineIn && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" title="You're booked" />}
+          {isToday && <span className="text-[9px] uppercase tracking-[0.1em] font-bold text-[var(--accent)] shrink-0">Today</span>}
+          {mineIn && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] shrink-0" title="You're booked" />}
+          {holiday && (
+            <span className="text-[9px] font-semibold uppercase tracking-wide truncate leading-tight text-[#006B9F]">
+              {holiday}
+            </span>
+          )}
         </div>
 
         {!weekend && !isPast && (
@@ -1107,16 +1120,17 @@ function WeekView({ anchor, bookings, currentUser, onDayClick, onDayDetails }) {
           pm:   entries.filter(e => e.slot === "pm"),
         };
 
+        const holiday = BANK_HOLIDAYS_2026[key] || null;
         return (
           <div
             key={key}
             className={`rounded-[14px] border card-shadow overflow-hidden flex flex-col min-h-[420px]
               ${isToday ? "border-[var(--accent)]" : "border-[var(--line)]"}
-              ${weekend ? "bg-[var(--weekend)]" : "bg-[var(--card)]"}
+              ${weekend ? "is-weekend bg-[var(--weekend)]" : holiday ? "bg-[var(--holiday)]" : "bg-[var(--card)]"}
             `}
           >
             <div className="px-3.5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--ink-3)]">
                   {WEEKDAY_SHORT[(d.getDay()+6)%7]}
                 </div>
@@ -1126,6 +1140,11 @@ function WeekView({ anchor, bookings, currentUser, onDayClick, onDayDetails }) {
                   </span>
                   <span className="text-[11px] text-[var(--ink-3)]">{MONTH_NAMES[d.getMonth()].slice(0,3)}</span>
                 </div>
+                {holiday && (
+                  <div className="text-[9px] font-semibold uppercase tracking-wide mt-0.5 truncate text-[#006B9F]">
+                    {holiday}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 {mineIn && <span className="text-[10px] uppercase font-semibold tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] px-1.5 py-0.5 rounded-md">You</span>}
@@ -1188,22 +1207,14 @@ function App() {
 
   const handleConfirm = useCallback(async (dates, slot) => {
     const { rowsToInsert, idsToDelete } = planBookingInserts(bookings, dates, currentUser, slot);
-    // Delete "full"-replaced conflicts first (each has its own date), then insert
-    for (const { date, id } of idsToDelete) {
-      try { await deleteBooking(date, id); } catch {}
-    }
-    if (rowsToInsert.length) {
-      try { await insertBookings(rowsToInsert); } catch {}
-    }
+    // Delete "full"-replaced conflicts in parallel, then insert
+    await Promise.allSettled(idsToDelete.map(({ date, id }) => deleteBooking(date, id)));
+    if (rowsToInsert.length) await insertBookings(rowsToInsert);
   }, [bookings, currentUser, insertBookings, deleteBooking]);
 
-  const handleDelete = useCallback(async (date, id) => {
-    try { await deleteBooking(date, id); } catch {}
-  }, [deleteBooking]);
+  const handleDelete = useCallback((date, id) => deleteBooking(date, id), [deleteBooking]);
 
-  const handleUpdateSlot = useCallback(async (date, id, slot) => {
-    try { await updateSlot(date, id, slot); } catch {}
-  }, [updateSlot]);
+  const handleUpdateSlot = useCallback((date, id, slot) => updateSlot(date, id, slot), [updateSlot]);
 
   // Stats for header
   const headerLabel = useMemo(() => {
@@ -1232,15 +1243,15 @@ function App() {
   return (
     <div className="min-h-screen">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 bg-[oklch(0.98_0.01_80_/_0.92)] backdrop-blur border-b border-[var(--line)]">
+      <header className="sticky top-0 z-30 bg-[var(--card)] backdrop-blur border-b border-[var(--line)]">
         <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[9px] bg-[var(--accent)] text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-[9px] bg-[var(--sage)] text-white flex items-center justify-center">
               <Icon name="Building2" size={17} />
             </div>
             <div className="leading-tight">
               <div className="text-[15px] font-semibold">Office hub</div>
-              <div className="text-[11px] text-[var(--ink-3)]">{DESK_COUNT} desks · shared with the team</div>
+              <div className="text-[11px] text-[var(--ink-3)]">Open desks · shared with the team</div>
             </div>
           </div>
 
@@ -1255,11 +1266,11 @@ function App() {
             {/* Sync indicator */}
             <div className="hidden md:flex items-center gap-1.5 text-[11.5px] text-[var(--ink-3)]" title={lastSync ? "Synced " + lastSync.toLocaleTimeString() : "Syncing..."}>
               {rateLimited
-                ? <span className="text-[oklch(0.55_0.14_60)]">Slow down ✋</span>
+                ? <span className="text-[#E07B00]">Slow down ✋</span>
                 : saving
                   ? <><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />Saving</>
                   : error
-                    ? <span className="text-[oklch(0.55_0.14_25)]" title={error}>Sync error</span>
+                    ? <span className="text-[#C0392B]" title={error}>Sync error</span>
                     : <><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]" />Live · shared</>}
             </div>
 
@@ -1304,6 +1315,7 @@ function App() {
           <button
             onClick={() => setBookingModal({ kind: "day", date: new Date() })}
             className="btn-primary inline-flex items-center gap-1.5"
+            style={{ background: "var(--sage)" }}
           >
             <Icon name="Plus" size={15} />
             Book a day
@@ -1331,7 +1343,7 @@ function App() {
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-[12px] border border-[oklch(0.8_0.1_25)] bg-[oklch(0.97_0.03_25)] p-4 text-[13px] text-[oklch(0.4_0.12_25)]">
+          <div className="rounded-[12px] border border-[rgba(220,50,50,0.4)] bg-[rgba(220,50,50,0.12)] p-4 text-[13px] text-[oklch(0.75_0.15_25)]">
             <strong>Couldn't load shared data.</strong> Retrying… <span className="opacity-70">({error})</span>
           </div>
         ) : view === "month" ? (
@@ -1363,7 +1375,7 @@ function App() {
         {/* Legend */}
         <div className="mt-6 flex items-center gap-4 flex-wrap text-[11.5px] text-[var(--ink-3)]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+            <span className="w-2 h-2 rounded-full bg-[var(--sage)]" />
             = you're booked
           </span>
           <span className="inline-flex items-center gap-1.5">
@@ -1440,7 +1452,25 @@ if (!window.supabase) {
   console.warn("[attendance] Supabase client failed to load. Running in read-only fallback.");
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+// ---------- Error boundary ----------
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px", fontFamily: "Inter, sans-serif", background: "#FFFFFF", color: "rgba(0,59,100,0.65)" }}>
+          <strong style={{ fontSize: "15px", color: "#003B64" }}>Something went wrong</strong>
+          <span style={{ fontSize: "13px" }}>Please reload the page. If the problem persists, clear site data.</span>
+          <button onClick={() => window.location.reload()} style={{ marginTop: "4px", padding: "6px 16px", borderRadius: "8px", border: "1px solid rgba(0,59,100,0.18)", background: "rgba(0,158,227,0.07)", color: "#003B64", cursor: "pointer", fontSize: "13px" }}>Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
 </script>
 </body>
 </html>
