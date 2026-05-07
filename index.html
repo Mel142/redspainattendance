@@ -940,35 +940,83 @@ function DayDetailModal({ date, bookings, currentUser, onClose, onDelete, onUpda
 }
 
 function NamePicker({ onPick }) {
-  const [hover, setHover] = useState(null);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const filtered = TEAM_MEMBERS.filter(name =>
+    name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  useEffect(() => {
+    function onOutsideClick(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
+  }, []);
+
+  function handleSelect(name) {
+    setOpen(false);
+    onPick(name);
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-[var(--card)] rounded-[16px] card-shadow-lg p-7">
+      <div className="w-full max-w-sm bg-[var(--card)] rounded-[16px] card-shadow-lg p-7">
         <div className="flex items-center gap-2 text-[var(--accent)]">
           <Icon name="Users" size={18} />
           <span className="text-[12px] uppercase tracking-[0.14em] font-semibold">Office attendance</span>
         </div>
         <h1 className="mt-3 text-[26px] font-semibold leading-tight">Who are you?</h1>
         <p className="mt-1.5 text-[14px] text-[var(--ink-2)]">
-          Pick your name so we can track which days you'll be in. You can change this later.
+          Search for your name to get started.
         </p>
-        <div className="mt-5 space-y-2">
-          {TEAM_MEMBERS.map(name => (
-            <button
-              key={name}
-              onMouseEnter={() => setHover(name)}
-              onMouseLeave={() => setHover(null)}
-              onClick={() => onPick(name)}
-              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] px-4 py-3 text-left hover:border-[var(--accent)] hover:bg-[rgba(0,158,227,0.07)] transition"
-            >
-              <span style={chipStyle(name)} className="chip-dot w-2.5 h-2.5 rounded-full" />
-              <span className="text-[15px] font-medium">{name}</span>
-              <span className={`ml-auto text-[var(--accent)] transition-opacity ${hover === name ? "opacity-100" : "opacity-0"}`}>
-                <Icon name="ArrowRight" size={16} />
-              </span>
-            </button>
-          ))}
+
+        <div ref={containerRef} className="mt-5 relative">
+          <div className={`flex items-center gap-2 rounded-[10px] border px-3 py-2.5 transition ${open ? "border-[var(--accent)]" : "border-[var(--line-2)]"}`}>
+            <Icon name="Search" size={15} className="text-[var(--ink-3)] shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search your name…"
+              value={query}
+              autoFocus
+              onFocus={() => setOpen(true)}
+              onChange={e => { setQuery(e.target.value); setOpen(true); }}
+              className="flex-1 bg-transparent text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-3)] outline-none"
+            />
+            {query && (
+              <button
+                onMouseDown={e => { e.preventDefault(); setQuery(""); inputRef.current?.focus(); }}
+                className="text-[var(--ink-3)] hover:text-[var(--ink)] transition"
+                aria-label="Clear"
+              >
+                <Icon name="X" size={13} />
+              </button>
+            )}
+          </div>
+
+          {open && (
+            <div className="absolute left-0 right-0 mt-1.5 bg-[var(--card)] rounded-[10px] border border-[var(--line)] card-shadow overflow-hidden z-10 max-h-60 overflow-y-auto">
+              {filtered.length > 0 ? filtered.map(name => (
+                <button
+                  key={name}
+                  onMouseDown={() => handleSelect(name)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[14px] font-medium hover:bg-[rgba(0,158,227,0.07)] transition"
+                >
+                  {name}
+                </button>
+              )) : (
+                <div className="px-3 py-4 text-center text-[13px] text-[var(--ink-3)]">
+                  No match for &ldquo;{query}&rdquo;
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
         <p className="mt-5 text-[11.5px] text-[var(--ink-3)] leading-relaxed">
           Heads up: bookings are shared with everyone on the team. No passwords, nothing private here.
         </p>
