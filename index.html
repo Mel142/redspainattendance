@@ -1127,11 +1127,11 @@ function DayCell({ date, entries, inMonth, weekend, isToday, isPast, currentUser
 
       <button
         type="button"
-        onClick={entries.length > 0 ? onDetails : (!weekend && !isPast ? onQuickBook : undefined)}
+        onClick={!isPast ? onQuickBook : (entries.length > 0 ? onDetails : undefined)}
         className="mt-1.5 flex-1 flex flex-col gap-1 text-left -m-0.5 p-0.5 rounded-md"
       >
         {shown.map(e => (
-          <NameChip key={e.id} name={e.name} slot={e.slot} />
+          <NameChip key={e.id} name={e.name} slot={e.slot} onClick={(ev) => { ev.stopPropagation(); onDetails(); }} />
         ))}
         {extra > 0 && (
           <span
@@ -1401,15 +1401,7 @@ function App() {
             anchor={anchor}
             bookings={bookings}
             currentUser={currentUser}
-            onDayClick={(d) => {
-              if (isWeekend(d)) { setBookingModal({ kind: "day", date: d }); return; }
-              const today = new Date(); today.setHours(0,0,0,0);
-              if (d < today) { setDetailsDate(d); return; }
-              // if empty slot, go direct to book; if has entries, open details
-              const entries = bookings[ymd(d)] || [];
-              if (entries.length === 0) setBookingModal({ kind: "day", date: d });
-              else setDetailsDate(d);
-            }}
+            onDayClick={(d) => setBookingModal({ kind: "day", date: d })}
             onDayDetails={(d) => setDetailsDate(d)}
           />
         ) : (
